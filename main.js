@@ -9,6 +9,7 @@ function createWindow() {
       nodeIntegration: true
     }
   });
+  mainWindow.setFullScreen(true);
 
   // Carrega o arquivo index.html
   mainWindow.loadFile('index.html');
