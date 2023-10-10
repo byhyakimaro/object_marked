@@ -5,28 +5,42 @@ document.addEventListener('DOMContentLoaded', () => {
   
   const coordinatesList = [];
 
-  let img; // Variável para armazenar a imagem carregada
+  let images = []; // Array para armazenar as imagens carregadas
+  let currentImageIndex = 0; // Índice da imagem atual no array
+
+  let isDrawing = false;
+  let startX, startY, endX, endY;
   let fileName;
   let lastCoordinatesList;
 
   input.addEventListener('change', handleFileSelect);
 
   function handleFileSelect(event) {
-    const file = event.target.files[0]; // Apenas a primeira imagem do array de arquivos
-    fileName = file.name;
-
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      img = new Image();
-      img.onload = function() {
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0, img.width, img.height);
+    const files = event.target.files;
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const img = new Image();
+        img.onload = function() {
+          images.push(img);
+          if (images.length === files.length) {
+            // Se todas as imagens foram carregadas, desenha a primeira imagem
+            drawImage(images[currentImageIndex]);
+            fileName = file.name;
+          }
+        };
+        img.src = e.target.result;
       };
-      img.src = e.target.result;
-    };
+      reader.readAsDataURL(file);
+    }
+  }
 
-    reader.readAsDataURL(file);
+  function drawImage(img) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height); // Limpa o canvas
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.drawImage(img, 0, 0, img.width, img.height);
   }
 
   function handleMouseMove(event) {
@@ -37,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Redesenha a imagem
-    ctx.drawImage(img, 0, 0, img.width, img.height);
+    drawImage(images[currentImageIndex]);
 
     // Desenha o quadrado branco com borda vermelha
     if (isDrawing) {
@@ -65,9 +79,6 @@ document.addEventListener('DOMContentLoaded', () => {
     ctx.stroke();
   }
 
-  let isDrawing = false;
-  let startX, startY, endX, endY;
-
   canvas.addEventListener('mousedown', (event) => {
     isDrawing = true;
     startX = event.clientX - canvas.getBoundingClientRect().left;
@@ -88,11 +99,30 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   });
 
+  document.getElementById('next-button').addEventListener('click', function() {
+    // Muda para a próxima imagem
+    if (currentImageIndex < images.length - 1) {
+      currentImageIndex++;
+      drawImage(images[currentImageIndex]);
+      fileName = input.files[currentImageIndex].name;
+    }
+  });
+
+  document.getElementById('prev-button').addEventListener('click', function() {
+    // Muda para a imagem anterior
+    if (currentImageIndex > 0) {
+      currentImageIndex--;
+      drawImage(images[currentImageIndex]);
+      fileName = input.files[currentImageIndex].name;
+    }
+  });
+
   document.getElementById('next-save').addEventListener('click', function() {
     // Salva as coordenadas em um arquivo ou envia para o servidor
-
-    coordinatesList.push({fileName, lastCoordinatesList});
-    console.log(JSON.stringify(coordinatesList));
+    if (fileName && lastCoordinatesList) {
+      coordinatesList.push({ fileName, coordinates: lastCoordinatesList });
+      console.log(JSON.stringify(coordinatesList));
+    }
   });
 
   document.addEventListener('mousemove', handleMouseMove);
