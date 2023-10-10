@@ -47,39 +47,42 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function handleMouseMove(event) {
-    const mouseX = event.clientX - canvas.getBoundingClientRect().left;
-    const mouseY = event.clientY - canvas.getBoundingClientRect().top;
-
-    // Limpa o canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Redesenha a imagem
-    drawImage(images[currentImageIndex]);
-
-    // Desenha o quadrado branco com borda vermelha
-    if (isDrawing) {
-      ctx.strokeStyle = 'red';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(startX, startY, mouseX - startX, mouseY - startY);
-    } else if (startX !== undefined) {
-      ctx.strokeStyle = 'red';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(startX, startY, endX - startX, endY - startY);
+    if (images.length !== 0) {
+      const mouseX = event.clientX - canvas.getBoundingClientRect().left;
+      const mouseY = event.clientY - canvas.getBoundingClientRect().top;
+  
+      // Limpa o canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+      // Redesenha a imagem
+      drawImage(images[currentImageIndex]);
+  
+      // Desenha o quadrado branco com borda vermelha
+      if (isDrawing) {
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(startX, startY, mouseX - startX, mouseY - startY);
+      } else if (startX !== undefined) {
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(startX, startY, endX - startX, endY - startY);
+      }
+  
+      // Desenha a linha horizontal
+      ctx.beginPath();
+      ctx.moveTo(0, mouseY);
+      ctx.lineTo(canvas.width, mouseY);
+      ctx.strokeStyle = 'green';
+      ctx.stroke();
+  
+      // Desenha a linha vertical
+      ctx.beginPath();
+      ctx.moveTo(mouseX, 0);
+      ctx.lineTo(mouseX, canvas.height);
+      ctx.strokeStyle = 'blue';
+      ctx.stroke();
     }
-
-    // Desenha a linha horizontal
-    ctx.beginPath();
-    ctx.moveTo(0, mouseY);
-    ctx.lineTo(canvas.width, mouseY);
-    ctx.strokeStyle = 'green';
-    ctx.stroke();
-
-    // Desenha a linha vertical
-    ctx.beginPath();
-    ctx.moveTo(mouseX, 0);
-    ctx.lineTo(mouseX, canvas.height);
-    ctx.strokeStyle = 'blue';
-    ctx.stroke();
+    
   }
 
   canvas.addEventListener('mousedown', (event) => {
