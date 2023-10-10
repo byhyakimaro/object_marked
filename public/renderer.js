@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const input = document.querySelector('input[type="file"]');
   const canvas = document.getElementById('image-canvas');
   const ctx = canvas.getContext('2d');
-  
+
   const textFileName = document.getElementById('prev-filename')
 
   const coordinatesList = [];
@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const reader = new FileReader();
       reader.onload = function (e) {
         const img = new Image();
-        img.onload = function() {
+        img.onload = function () {
           images.push(img);
           if (images.length === files.length) {
             // Se todas as imagens foram carregadas, desenha a primeira imagem
@@ -50,13 +50,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (images.length !== 0) {
       const mouseX = event.clientX - canvas.getBoundingClientRect().left;
       const mouseY = event.clientY - canvas.getBoundingClientRect().top;
-  
+
       // Limpa o canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-  
+
       // Redesenha a imagem
       drawImage(images[currentImageIndex]);
-  
+
       // Desenha o quadrado branco com borda vermelha
       if (isDrawing) {
         ctx.strokeStyle = 'red';
@@ -67,14 +67,14 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.lineWidth = 2;
         ctx.strokeRect(startX, startY, endX - startX, endY - startY);
       }
-  
+
       // Desenha a linha horizontal
       ctx.beginPath();
       ctx.moveTo(0, mouseY);
       ctx.lineTo(canvas.width, mouseY);
       ctx.strokeStyle = 'green';
       ctx.stroke();
-  
+
       // Desenha a linha vertical
       ctx.beginPath();
       ctx.moveTo(mouseX, 0);
@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
       ctx.strokeStyle = 'blue';
       ctx.stroke();
     }
-    
+
   }
 
   canvas.addEventListener('mousedown', (event) => {
@@ -105,7 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   });
 
-  document.getElementById('next-button').addEventListener('click', function() {
+  document.getElementById('next-button').addEventListener('click', function () {
     // Muda para a próxima imagem
     if (currentImageIndex < images.length - 1) {
       currentImageIndex++;
@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  document.getElementById('prev-button').addEventListener('click', function() {
+  document.getElementById('prev-button').addEventListener('click', function () {
     // Muda para a imagem anterior
     if (currentImageIndex > 0) {
       currentImageIndex--;
@@ -125,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  document.getElementById('next-save').addEventListener('click', function() {
+  document.getElementById('next-save').addEventListener('click', function () {
     // Salva as coordenadas em um arquivo ou envia para o servidor
     if (fileName && lastCoordinatesList) {
       coordinatesList.push({ fileName, coordinates: lastCoordinatesList });
@@ -134,4 +134,15 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.addEventListener('mousemove', handleMouseMove);
+
+  document.getElementById('prev-clipboard').addEventListener('click', function (event) {
+    event.preventDefault();
+    
+    const coordinatesListString = JSON.stringify(coordinatesList);
+    navigator.clipboard.writeText(coordinatesListString).then(function () {
+      console.log('Coordenadas copiadas para a área de transferência!');
+    }).catch(function (err) {
+      console.error('Falha ao copiar coordenadas: ', err);
+    });
+  })
 });
