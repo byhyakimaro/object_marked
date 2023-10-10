@@ -98,10 +98,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // salva coordenadas do ultimo quadrado vermelho
     lastCoordinatesList = {
-      xmin: Math.min(startX, endX),
-      ymin: Math.min(startY, endY),
-      xmax: Math.max(startX, endX),
-      ymax: Math.max(startY, endY),
+      xmin: startX / images[currentImageIndex].width,
+      ymin: startY / images[currentImageIndex].height,
+      xmax: (endX - startX) / images[currentImageIndex].width,
+      ymax: (endY - startY) / images[currentImageIndex].height,
     };
   });
 
