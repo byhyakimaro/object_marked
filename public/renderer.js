@@ -3,6 +3,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const canvas = document.getElementById('image-canvas');
   const ctx = canvas.getContext('2d');
   
+  const textFileName = document.getElementById('prev-filename')
+
   const coordinatesList = [];
 
   let images = []; // Array para armazenar as imagens carregadas
@@ -27,7 +29,8 @@ document.addEventListener('DOMContentLoaded', () => {
           if (images.length === files.length) {
             // Se todas as imagens foram carregadas, desenha a primeira imagem
             drawImage(images[currentImageIndex]);
-            fileName = file.name;
+            textFileName.innerText = input.files[currentImageIndex].name;
+            fileName = input.files[currentImageIndex].name;
           }
         };
         img.src = e.target.result;
@@ -105,6 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
       currentImageIndex++;
       drawImage(images[currentImageIndex]);
       fileName = input.files[currentImageIndex].name;
+      textFileName.innerText = fileName;
     }
   });
 
@@ -114,6 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
       currentImageIndex--;
       drawImage(images[currentImageIndex]);
       fileName = input.files[currentImageIndex].name;
+      textFileName.innerText = fileName;
     }
   });
 
