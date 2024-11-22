@@ -134,9 +134,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (fileName && lastCoordinatesList) {
       const datasetFormat = document.getElementById('dataset-format').value;
 
-      if (datasetFormat === 'yolo') {
+      if (datasetFormat === 'json') {
         saveYOLOFormat(fileName, coordinatesList[fileName]);
-      } else if (datasetFormat === 'json') {
+      } else if (datasetFormat === 'yolo') {
         saveJSONFormat(fileName, coordinatesList[fileName]);
       }
     }
