@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let startX, startY, endX, endY;
   let fileName;
   let lastCoordinatesList;
+  let selectedDirectoryHandle = null; // Variável para armazenar o diretório selecionado
 
   input.addEventListener('change', handleFileSelect);
 
@@ -45,7 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function drawSavedCoordinates() {
-    // Desenha as coordenadas salvas, se existirem, para a imagem atual
     if (fileName && coordinatesList[fileName]) {
       const coords = coordinatesList[fileName];
       ctx.strokeStyle = 'red';
@@ -66,7 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       drawImage(images[currentImageIndex]);
-      drawSavedCoordinates(); // Desenha as coordenadas salvas
+      drawSavedCoordinates();
 
       if (isDrawing) {
         ctx.strokeStyle = 'red';
@@ -106,7 +106,6 @@ document.addEventListener('DOMContentLoaded', () => {
       ymax: (endY - startY) / images[currentImageIndex].height,
     };
 
-    // Salva as coordenadas para a imagem atual
     coordinatesList[fileName] = lastCoordinatesList;
   });
 
@@ -134,7 +133,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const datasetFormat = document.getElementById('dataset-format').value;
 
     if (datasetFormat === 'yolo') {
-      saveAllYOLOFormats();
+      if (selectedDirectoryHandle) {
+        saveAllYOLOFormats(selectedDirectoryHandle);
+      } else {
+        alert('Por favor, selecione um diretório antes de salvar.');
+      }
     } else if (datasetFormat === 'json') {
       if (fileName && lastCoordinatesList) {
         saveJSONFormat(fileName, coordinatesList[fileName]);
@@ -142,22 +145,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  function saveYOLOFormat(fileName, coords, classIndex) {
-    if (coords) {
-      const yoloData = `${classIndex} ${(coords.xmin + coords.xmax / 2).toFixed(6)} ${(coords.ymin + coords.ymax / 2).toFixed(6)} ${coords.xmax.toFixed(6)} ${coords.ymax.toFixed(6)}\n`;
-      downloadFile(`${fileName.replace(/\.[^/.]+$/, '')}.txt`, yoloData);
-    }
-  }
-
-  function saveAllYOLOFormats() {
-    Object.keys(coordinatesList).forEach((fileName, index) => {
+  async function saveAllYOLOFormats(directoryHandle) {
+    Object.keys(coordinatesList).forEach(async (fileName, index) => {
       const coords = coordinatesList[fileName];
       if (coords) {
         const classIndex = index; // Classe será igual ao índice da imagem
         const yoloData = `${classIndex} ${(coords.xmin + coords.xmax / 2).toFixed(6)} ${(coords.ymin + coords.ymax / 2).toFixed(6)} ${coords.xmax.toFixed(6)} ${coords.ymax.toFixed(6)}\n`;
-        downloadFile(`${fileName.replace(/\.[^/.]+$/, '')}.txt`, yoloData);
+        await saveFileToDirectory(directoryHandle, `${fileName.replace(/\.[^/.]+$/, '')}.txt`, yoloData);
       }
     });
+  }
+
+  async function saveFileToDirectory(directoryHandle, filename, data) {
+    try {
+      const fileHandle = await directoryHandle.getFileHandle(filename, { create: true });
+      const writable = await fileHandle.createWritable();
+      await writable.write(data);
+      await writable.close();
+    } catch (err) {
+      console.error('Erro ao salvar arquivo:', err);
+    }
   }
 
   function saveJSONFormat(fileName, coords) {
@@ -177,27 +184,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.addEventListener('mousemove', handleMouseMove);
 
-  document.getElementById('prev-clipboard').addEventListener('click', function (event) {
-    event.preventDefault();
-    
-    const datasetFormat = document.getElementById('dataset-format').value;
-    let dataToCopy;
-
-    if (datasetFormat === 'json') {
-      dataToCopy = JSON.stringify(coordinatesList, null, 2);
-    } else if (datasetFormat === 'yolo') {
-      dataToCopy = Object.keys(coordinatesList).map((fileName, index) => {
-        const coords = coordinatesList[fileName];
-        const classIndex = index; // Classe será igual ao índice da imagem
-        return `${classIndex} ${(coords.xmin + coords.xmax / 2).toFixed(6)} ${(coords.ymin + coords.ymax / 2).toFixed(6)} ${coords.xmax.toFixed(6)} ${coords.ymax.toFixed(6)}`;
-      }).join('\n');
+  // Função para selecionar o diretório
+  document.getElementById('select-directory').addEventListener('click', async function () {
+    try {
+      selectedDirectoryHandle = await window.showDirectoryPicker();
+      console.log('Diretório selecionado:', selectedDirectoryHandle);
+    } catch (err) {
+      console.error('Erro ao selecionar diretório:', err);
     }
-
-    navigator.clipboard.writeText(dataToCopy).then(function () {
-      console.log('Coordenadas copiadas para a área de transferência!');
-    }).catch(function (err) {
-      console.error('Falha ao copiar coordenadas: ', err);
-    });
   });
 
   function loadCoordinatesForImage(fileName) {
