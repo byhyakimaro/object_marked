@@ -45,7 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function drawSavedCoordinates() {
-    // Desenha as coordenadas salvas, se existirem, para a imagem atual
     if (fileName && coordinatesList[fileName]) {
       const coords = coordinatesList[fileName];
       ctx.strokeStyle = 'red';
@@ -66,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       drawImage(images[currentImageIndex]);
-      drawSavedCoordinates(); // Desenha as coordenadas salvas
+      drawSavedCoordinates();
 
       if (isDrawing) {
         ctx.strokeStyle = 'red';
@@ -106,7 +105,6 @@ document.addEventListener('DOMContentLoaded', () => {
       ymax: (endY - startY) / images[currentImageIndex].height,
     };
 
-    // Salva as coordenadas para a imagem atual
     coordinatesList[fileName] = lastCoordinatesList;
   });
 
@@ -143,18 +141,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  function saveYOLOFormat(fileName, coords, classIndex) {
-    if (coords) {
-      const yoloData = `${classIndex} ${(coords.xmin + coords.xmax / 2).toFixed(6)} ${(coords.ymin + coords.ymax / 2).toFixed(6)} ${coords.xmax.toFixed(6)} ${coords.ymax.toFixed(6)}\n`;
-      downloadFile(`${fileName.replace(/\.[^/.]+$/, '')}.txt`, yoloData);
-    }
-  }
-
   function saveAllYOLOFormats() {
     Object.keys(coordinatesList).forEach((fileName, index) => {
       const coords = coordinatesList[fileName];
       if (coords) {
-        const classIndex = index; // Classe será igual ao índice da imagem
+        const classIndex = index;
         const yoloData = `${classIndex} ${(coords.xmin + coords.xmax / 2).toFixed(6)} ${(coords.ymin + coords.ymax / 2).toFixed(6)} ${coords.xmax.toFixed(6)} ${coords.ymax.toFixed(6)}\n`;
         downloadFile(`${fileName.replace(/\.[^/.]+$/, '')}.txt`, yoloData);
       }
@@ -190,7 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (datasetFormat === 'yolo') {
       dataToCopy = Object.keys(coordinatesList).map((fileName, index) => {
         const coords = coordinatesList[fileName];
-        const classIndex = index; // Classe será igual ao índice da imagem
+        const classIndex = index;
         return `${classIndex} ${(coords.xmin + coords.xmax / 2).toFixed(6)} ${(coords.ymin + coords.ymax / 2).toFixed(6)} ${coords.xmax.toFixed(6)} ${coords.ymax.toFixed(6)}`;
       }).join('\n');
     }
@@ -210,7 +201,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Função para exibir notificações para o usuário
   function showAlert(message) {
     const alertBox = document.createElement('div');
     alertBox.textContent = message;
