@@ -12,7 +12,6 @@ document.addEventListener('DOMContentLoaded', () => {
   let startX, startY, endX, endY;
   let fileName;
   let lastCoordinatesList;
-  let selectedDirectoryHandle = null; // Variável para armazenar o diretório selecionado
 
   input.addEventListener('change', handleFileSelect);
 
@@ -46,6 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function drawSavedCoordinates() {
+    // Desenha as coordenadas salvas, se existirem, para a imagem atual
     if (fileName && coordinatesList[fileName]) {
       const coords = coordinatesList[fileName];
       ctx.strokeStyle = 'red';
@@ -66,7 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       drawImage(images[currentImageIndex]);
-      drawSavedCoordinates();
+      drawSavedCoordinates(); // Desenha as coordenadas salvas
 
       if (isDrawing) {
         ctx.strokeStyle = 'red';
@@ -106,6 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
       ymax: (endY - startY) / images[currentImageIndex].height,
     };
 
+    // Salva as coordenadas para a imagem atual
     coordinatesList[fileName] = lastCoordinatesList;
   });
 
@@ -133,38 +134,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const datasetFormat = document.getElementById('dataset-format').value;
 
     if (datasetFormat === 'yolo') {
-      if (selectedDirectoryHandle) {
-        saveAllYOLOFormats(selectedDirectoryHandle);
-      } else {
-        alert('Por favor, selecione um diretório antes de salvar.');
-      }
+      saveAllYOLOFormats();
     } else if (datasetFormat === 'json') {
       if (fileName && lastCoordinatesList) {
         saveJSONFormat(fileName, coordinatesList[fileName]);
+        showAlert('Arquivo JSON salvo com sucesso!');
       }
     }
   });
 
-  async function saveAllYOLOFormats(directoryHandle) {
-    Object.keys(coordinatesList).forEach(async (fileName, index) => {
+  function saveYOLOFormat(fileName, coords, classIndex) {
+    if (coords) {
+      const yoloData = `${classIndex} ${(coords.xmin + coords.xmax / 2).toFixed(6)} ${(coords.ymin + coords.ymax / 2).toFixed(6)} ${coords.xmax.toFixed(6)} ${coords.ymax.toFixed(6)}\n`;
+      downloadFile(`${fileName.replace(/\.[^/.]+$/, '')}.txt`, yoloData);
+    }
+  }
+
+  function saveAllYOLOFormats() {
+    Object.keys(coordinatesList).forEach((fileName, index) => {
       const coords = coordinatesList[fileName];
       if (coords) {
         const classIndex = index; // Classe será igual ao índice da imagem
         const yoloData = `${classIndex} ${(coords.xmin + coords.xmax / 2).toFixed(6)} ${(coords.ymin + coords.ymax / 2).toFixed(6)} ${coords.xmax.toFixed(6)} ${coords.ymax.toFixed(6)}\n`;
-        await saveFileToDirectory(directoryHandle, `${fileName.replace(/\.[^/.]+$/, '')}.txt`, yoloData);
+        downloadFile(`${fileName.replace(/\.[^/.]+$/, '')}.txt`, yoloData);
       }
     });
-  }
-
-  async function saveFileToDirectory(directoryHandle, filename, data) {
-    try {
-      const fileHandle = await directoryHandle.getFileHandle(filename, { create: true });
-      const writable = await fileHandle.createWritable();
-      await writable.write(data);
-      await writable.close();
-    } catch (err) {
-      console.error('Erro ao salvar arquivo:', err);
-    }
+    showAlert('Arquivos YOLO salvos com sucesso!');
   }
 
   function saveJSONFormat(fileName, coords) {
@@ -184,14 +179,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.addEventListener('mousemove', handleMouseMove);
 
-  // Função para selecionar o diretório
-  document.getElementById('select-directory').addEventListener('click', async function () {
-    try {
-      selectedDirectoryHandle = await window.showDirectoryPicker();
-      console.log('Diretório selecionado:', selectedDirectoryHandle);
-    } catch (err) {
-      console.error('Erro ao selecionar diretório:', err);
+  document.getElementById('prev-clipboard').addEventListener('click', function (event) {
+    event.preventDefault();
+
+    const datasetFormat = document.getElementById('dataset-format').value;
+    let dataToCopy;
+
+    if (datasetFormat === 'json') {
+      dataToCopy = JSON.stringify(coordinatesList, null, 2);
+    } else if (datasetFormat === 'yolo') {
+      dataToCopy = Object.keys(coordinatesList).map((fileName, index) => {
+        const coords = coordinatesList[fileName];
+        const classIndex = index; // Classe será igual ao índice da imagem
+        return `${classIndex} ${(coords.xmin + coords.xmax / 2).toFixed(6)} ${(coords.ymin + coords.ymax / 2).toFixed(6)} ${coords.xmax.toFixed(6)} ${coords.ymax.toFixed(6)}`;
+      }).join('\n');
     }
+
+    navigator.clipboard.writeText(dataToCopy).then(function () {
+      showAlert('Dataset copiado para a área de transferência!');
+    }).catch(function (err) {
+      console.error('Falha ao copiar dataset: ', err);
+    });
   });
 
   function loadCoordinatesForImage(fileName) {
@@ -200,5 +208,25 @@ document.addEventListener('DOMContentLoaded', () => {
     if (coordinatesList[fileName]) {
       drawSavedCoordinates();
     }
+  }
+
+  // Função para exibir notificações para o usuário
+  function showAlert(message) {
+    const alertBox = document.createElement('div');
+    alertBox.textContent = message;
+    alertBox.style.position = 'fixed';
+    alertBox.style.bottom = '20px';
+    alertBox.style.right = '20px';
+    alertBox.style.padding = '10px';
+    alertBox.style.backgroundColor = '#28a745';
+    alertBox.style.color = '#fff';
+    alertBox.style.borderRadius = '5px';
+    alertBox.style.zIndex = '9999';
+
+    document.body.appendChild(alertBox);
+
+    setTimeout(() => {
+      alertBox.remove();
+    }, 3000);
   }
 });
