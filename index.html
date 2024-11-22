@@ -23,7 +23,16 @@
   <button id="prev-button">Anterior</button>
   <button id="next-button">Próxima</button>
   <button id="next-save">Salvar</button><br>
-  <p>click para resetar o seletor</p>
+  <div>
+    <label for="dataset-format">Formato do Dataset:</label>
+    <select id="dataset-format">
+      <option value="yolo">JSON</option>
+      <option value="voc">YOLO</option>
+    </select>
+  </div>
+ 
+  <div id="output"></div>
+  <p>Click para resetar o seletor</p>
 
   <script src="public/renderer.js"></script>
 </body>

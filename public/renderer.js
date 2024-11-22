@@ -3,13 +3,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const canvas = document.getElementById('image-canvas');
   const ctx = canvas.getContext('2d');
 
-  const textFileName = document.getElementById('prev-filename')
+  const textFileName = document.getElementById('prev-filename');
+  const coordinatesList = {};
 
-  const coordinatesList = [];
-
-  let images = []; // Array para armazenar as imagens carregadas
-  let currentImageIndex = 0; // Índice da imagem atual no array
-
+  let images = [];
+  let currentImageIndex = 0;
   let isDrawing = false;
   let startX, startY, endX, endY;
   let fileName;
@@ -27,10 +25,10 @@ document.addEventListener('DOMContentLoaded', () => {
         img.onload = function () {
           images.push(img);
           if (images.length === files.length) {
-            // Se todas as imagens foram carregadas, desenha a primeira imagem
             drawImage(images[currentImageIndex]);
             textFileName.innerText = input.files[currentImageIndex].name;
             fileName = input.files[currentImageIndex].name;
+            loadCoordinatesForImage(fileName);
           }
         };
         img.src = e.target.result;
@@ -40,10 +38,25 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function drawImage(img) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height); // Limpa o canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     canvas.width = img.width;
     canvas.height = img.height;
     ctx.drawImage(img, 0, 0, img.width, img.height);
+  }
+
+  function drawSavedCoordinates() {
+    // Desenha as coordenadas salvas, se existirem, para a imagem atual
+    if (fileName && coordinatesList[fileName]) {
+      const coords = coordinatesList[fileName];
+      ctx.strokeStyle = 'red';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(
+        coords.xmin * images[currentImageIndex].width,
+        coords.ymin * images[currentImageIndex].height,
+        coords.xmax * images[currentImageIndex].width,
+        coords.ymax * images[currentImageIndex].height
+      );
+    }
   }
 
   function handleMouseMove(event) {
@@ -51,38 +64,28 @@ document.addEventListener('DOMContentLoaded', () => {
       const mouseX = event.clientX - canvas.getBoundingClientRect().left;
       const mouseY = event.clientY - canvas.getBoundingClientRect().top;
 
-      // Limpa o canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Redesenha a imagem
       drawImage(images[currentImageIndex]);
+      drawSavedCoordinates(); // Desenha as coordenadas salvas
 
-      // Desenha o quadrado branco com borda vermelha
       if (isDrawing) {
         ctx.strokeStyle = 'red';
         ctx.lineWidth = 2;
         ctx.strokeRect(startX, startY, mouseX - startX, mouseY - startY);
-      } else if (startX !== undefined) {
-        ctx.strokeStyle = 'red';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(startX, startY, endX - startX, endY - startY);
       }
 
-      // Desenha a linha horizontal
       ctx.beginPath();
       ctx.moveTo(0, mouseY);
       ctx.lineTo(canvas.width, mouseY);
       ctx.strokeStyle = 'green';
       ctx.stroke();
 
-      // Desenha a linha vertical
       ctx.beginPath();
       ctx.moveTo(mouseX, 0);
       ctx.lineTo(mouseX, canvas.height);
       ctx.strokeStyle = 'blue';
       ctx.stroke();
     }
-
   }
 
   canvas.addEventListener('mousedown', (event) => {
@@ -96,53 +99,100 @@ document.addEventListener('DOMContentLoaded', () => {
     endX = event.clientX - canvas.getBoundingClientRect().left;
     endY = event.clientY - canvas.getBoundingClientRect().top;
 
-    // salva coordenadas do ultimo quadrado vermelho
     lastCoordinatesList = {
       xmin: startX / images[currentImageIndex].width,
       ymin: startY / images[currentImageIndex].height,
       xmax: (endX - startX) / images[currentImageIndex].width,
       ymax: (endY - startY) / images[currentImageIndex].height,
     };
+
+    // Salva as coordenadas para a imagem atual
+    coordinatesList[fileName] = lastCoordinatesList;
   });
 
   document.getElementById('next-button').addEventListener('click', function () {
-    // Muda para a próxima imagem
     if (currentImageIndex < images.length - 1) {
       currentImageIndex++;
-      drawImage(images[currentImageIndex]);
       fileName = input.files[currentImageIndex].name;
+      drawImage(images[currentImageIndex]);
       textFileName.innerText = fileName;
+      loadCoordinatesForImage(fileName);
     }
   });
 
   document.getElementById('prev-button').addEventListener('click', function () {
-    // Muda para a imagem anterior
     if (currentImageIndex > 0) {
       currentImageIndex--;
-      drawImage(images[currentImageIndex]);
       fileName = input.files[currentImageIndex].name;
+      drawImage(images[currentImageIndex]);
       textFileName.innerText = fileName;
+      loadCoordinatesForImage(fileName);
     }
   });
 
   document.getElementById('next-save').addEventListener('click', function () {
-    // Salva as coordenadas em um arquivo ou envia para o servidor
     if (fileName && lastCoordinatesList) {
-      coordinatesList.push({ fileName, coordinates: lastCoordinatesList });
-      console.log(JSON.stringify(coordinatesList));
+      const datasetFormat = document.getElementById('dataset-format').value;
+
+      if (datasetFormat === 'yolo') {
+        saveYOLOFormat(fileName, coordinatesList[fileName]);
+      } else if (datasetFormat === 'json') {
+        saveJSONFormat(fileName, coordinatesList[fileName]);
+      }
     }
   });
+
+  function saveYOLOFormat(fileName, coords) {
+    if (coords) {
+      const yoloData = `${0} ${(coords.xmin + coords.xmax / 2).toFixed(6)} ${(coords.ymin + coords.ymax / 2).toFixed(6)} ${coords.xmax.toFixed(6)} ${coords.ymax.toFixed(6)}\n`;
+      downloadFile(`${fileName.replace('.jpg', '')}_yolo.txt`, yoloData);
+    }
+  }
+
+  function saveJSONFormat(fileName, coords) {
+    if (coords) {
+      const jsonData = JSON.stringify(coords, null, 2);
+      downloadFile(`${fileName.replace('.jpg', '')}_annotations.json`, jsonData);
+    }
+  }
+
+  function downloadFile(filename, data) {
+    const blob = new Blob([data], { type: 'text/plain' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+  }
 
   document.addEventListener('mousemove', handleMouseMove);
 
   document.getElementById('prev-clipboard').addEventListener('click', function (event) {
     event.preventDefault();
     
-    const coordinatesListString = JSON.stringify(coordinatesList);
-    navigator.clipboard.writeText(coordinatesListString).then(function () {
+    const datasetFormat = document.getElementById('dataset-format').value;
+    let dataToCopy;
+
+    if (datasetFormat === 'yolo') {
+      dataToCopy = Object.keys(coordinatesList).map(fileName => {
+        const coords = coordinatesList[fileName];
+        return `${0} ${(coords.xmin + coords.xmax / 2).toFixed(6)} ${(coords.ymin + coords.ymax / 2).toFixed(6)} ${coords.xmax.toFixed(6)} ${coords.ymax.toFixed(6)}`;
+      }).join('\n');
+    } else if (datasetFormat === 'json') {
+      dataToCopy = JSON.stringify(coordinatesList, null, 2);
+    }
+
+    navigator.clipboard.writeText(dataToCopy).then(function () {
       console.log('Coordenadas copiadas para a área de transferência!');
     }).catch(function (err) {
       console.error('Falha ao copiar coordenadas: ', err);
     });
-  })
+  });
+
+  function loadCoordinatesForImage(fileName) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawImage(images[currentImageIndex]);
+    if (coordinatesList[fileName]) {
+      drawSavedCoordinates();
+    }
+  }
 });
