@@ -131,28 +131,39 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('next-save').addEventListener('click', function () {
-    if (fileName && lastCoordinatesList) {
-      const datasetFormat = document.getElementById('dataset-format').value;
+    const datasetFormat = document.getElementById('dataset-format').value;
 
-      if (datasetFormat === 'json') {
-        saveYOLOFormat(fileName, coordinatesList[fileName]);
-      } else if (datasetFormat === 'yolo') {
+    if (datasetFormat === 'yolo') {
+      saveAllYOLOFormats();
+    } else if (datasetFormat === 'json') {
+      if (fileName && lastCoordinatesList) {
         saveJSONFormat(fileName, coordinatesList[fileName]);
       }
     }
   });
 
-  function saveYOLOFormat(fileName, coords) {
+  function saveYOLOFormat(fileName, coords, classIndex) {
     if (coords) {
-      const yoloData = `${0} ${(coords.xmin + coords.xmax / 2).toFixed(6)} ${(coords.ymin + coords.ymax / 2).toFixed(6)} ${coords.xmax.toFixed(6)} ${coords.ymax.toFixed(6)}\n`;
-      downloadFile(`${fileName.replace('.jpg', '')}_yolo.txt`, yoloData);
+      const yoloData = `${classIndex} ${(coords.xmin + coords.xmax / 2).toFixed(6)} ${(coords.ymin + coords.ymax / 2).toFixed(6)} ${coords.xmax.toFixed(6)} ${coords.ymax.toFixed(6)}\n`;
+      downloadFile(`${fileName.replace(/\.[^/.]+$/, '')}.txt`, yoloData);
     }
+  }
+
+  function saveAllYOLOFormats() {
+    Object.keys(coordinatesList).forEach((fileName, index) => {
+      const coords = coordinatesList[fileName];
+      if (coords) {
+        const classIndex = index; // Classe será igual ao índice da imagem
+        const yoloData = `${classIndex} ${(coords.xmin + coords.xmax / 2).toFixed(6)} ${(coords.ymin + coords.ymax / 2).toFixed(6)} ${coords.xmax.toFixed(6)} ${coords.ymax.toFixed(6)}\n`;
+        downloadFile(`${fileName.replace(/\.[^/.]+$/, '')}.txt`, yoloData);
+      }
+    });
   }
 
   function saveJSONFormat(fileName, coords) {
     if (coords) {
       const jsonData = JSON.stringify(coords, null, 2);
-      downloadFile(`${fileName.replace('.jpg', '')}_annotations.json`, jsonData);
+      downloadFile(`${fileName.replace(/\.[^/.]+$/, '')}_annotations.json`, jsonData);
     }
   }
 
@@ -172,13 +183,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const datasetFormat = document.getElementById('dataset-format').value;
     let dataToCopy;
 
-    if (datasetFormat === 'yolo') {
-      dataToCopy = Object.keys(coordinatesList).map(fileName => {
-        const coords = coordinatesList[fileName];
-        return `${0} ${(coords.xmin + coords.xmax / 2).toFixed(6)} ${(coords.ymin + coords.ymax / 2).toFixed(6)} ${coords.xmax.toFixed(6)} ${coords.ymax.toFixed(6)}`;
-      }).join('\n');
-    } else if (datasetFormat === 'json') {
+    if (datasetFormat === 'json') {
       dataToCopy = JSON.stringify(coordinatesList, null, 2);
+    } else if (datasetFormat === 'yolo') {
+      dataToCopy = Object.keys(coordinatesList).map((fileName, index) => {
+        const coords = coordinatesList[fileName];
+        const classIndex = index; // Classe será igual ao índice da imagem
+        return `${classIndex} ${(coords.xmin + coords.xmax / 2).toFixed(6)} ${(coords.ymin + coords.ymax / 2).toFixed(6)} ${coords.xmax.toFixed(6)} ${coords.ymax.toFixed(6)}`;
+      }).join('\n');
     }
 
     navigator.clipboard.writeText(dataToCopy).then(function () {
