@@ -144,7 +144,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   });
-    
   
   canvas.addEventListener('mousedown', (event) => {
     if (event.button !== 0) return;
