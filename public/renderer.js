@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       showAlert('Nenhuma classe registrada para salvar em custom.names.');
     }
-  }
+  }  
 
   // A função `handleMouseMove` deve estar pronta para interagir com a classe
   // Quando uma nova classe for selecionada no seletor, ela será registrada:
