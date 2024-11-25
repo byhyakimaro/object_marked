@@ -197,9 +197,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const coordinates = {
       xmin: startX / images[currentImageIndex].width,
       ymin: startY / images[currentImageIndex].height,
-      xmax: (endX - startX) / images[currentImageIndex].width,
-      ymax: (endY - startY) / images[currentImageIndex].height,
-      class: classIndex, // Usa o índice da classe
+      xmax: (endX - startX) / images[currentImageIndex].width,  // Corrigido
+      ymax: (endY - startY) / images[currentImageIndex].height, // Corrigido
+      class: classIndex,
     };
 
     // Adiciona ao array da imagem atual
@@ -251,11 +251,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const coords = coordinatesList[fileName];
       if (coords) {
         const yoloData = coords.map(coord => {
-          const centerX = (coord.xmin + coord.xmax / 2).toFixed(6);
-          const centerY = (coord.ymin + coord.ymax / 2).toFixed(6);
-          const width = coord.xmax.toFixed(6);
-          const height = coord.ymax.toFixed(6);
-          return `${coord.class} ${centerX} ${centerY} ${width} ${height}`; // Usa o índice da classe
+          // Garanta que o índice da classe seja o correto
+          const className = Array.from(classHierarchy).sort()[coord.class]; // Obtemos o nome da classe
+          const classIndex = getClassIndex(className); // Obtém o índice correto
+          const centerX = ((coord.xmin + coord.xmax) / 2).toFixed(6);
+          const centerY = ((coord.ymin + coord.ymax) / 2).toFixed(6);
+          const width = (coord.xmax - coord.xmin).toFixed(6);
+          const height = (coord.ymax - coord.ymin).toFixed(6);
+          return `${classIndex} ${centerX} ${centerY} ${width} ${height}`; // Usa o índice da classe
         }).join('\n');
     
         const outputFileName = `${fileName.replace(/\.[^/.]+$/, '')}.txt`;
@@ -264,8 +267,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     saveCustomNames(); // Chama para salvar as classes após salvar os dados YOLO
     showAlert('Arquivos YOLO salvos com sucesso!');
-  }  
-
+  }
+  
   function saveJSONFormat(fileName, coords) {
     if (coords) {
       const jsonData = JSON.stringify(coords, null, 2);
