@@ -46,17 +46,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function drawSavedCoordinates() {
     if (fileName && coordinatesList[fileName]) {
-      const coords = coordinatesList[fileName];
-      ctx.strokeStyle = 'red';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(
-        coords.xmin * images[currentImageIndex].width,
-        coords.ymin * images[currentImageIndex].height,
-        coords.xmax * images[currentImageIndex].width,
-        coords.ymax * images[currentImageIndex].height
-      );
+      coordinatesList[fileName].forEach((coords) => {
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(
+          coords.xmin * images[currentImageIndex].width,
+          coords.ymin * images[currentImageIndex].height,
+          coords.xmax * images[currentImageIndex].width,
+          coords.ymax * images[currentImageIndex].height
+        );
+  
+        // Desenha o índice ou rótulo da classe
+        ctx.fillStyle = 'green';
+        ctx.font = '16px Arial';
+        ctx.fillText(
+          `Class ${coords.class}`,
+          coords.xmin * images[currentImageIndex].width,
+          coords.ymin * images[currentImageIndex].height - 5
+        );
+      });
     }
-  }
+  }  
 
   function handleMouseMove(event) {
     if (images.length !== 0) {
@@ -87,26 +97,86 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  canvas.addEventListener('contextmenu', (event) => {
+    event.preventDefault(); // Evita o menu padrão do botão direito
+  
+    // Obtém as coordenadas do clique
+    const mouseX = event.clientX - canvas.getBoundingClientRect().left;
+    const mouseY = event.clientY - canvas.getBoundingClientRect().top;
+  
+    if (fileName && coordinatesList[fileName]) {
+      const objects = coordinatesList[fileName];
+      const tolerance = 5; // Define uma margem de tolerância para cliques próximos
+  
+      // Itera sobre os retângulos existentes para verificar se o clique está dentro ou próximo
+      for (let i = 0; i < objects.length; i++) {
+        const coords = objects[i];
+  
+        // Converte as coordenadas normalizadas para as dimensões do canvas
+        const xmin = coords.xmin * canvas.width;
+        const ymin = coords.ymin * canvas.height;
+        const xmax = (coords.xmin + coords.xmax) * canvas.width;
+        const ymax = (coords.ymin + coords.ymax) * canvas.height;
+  
+        // Verifica se o clique está dentro ou próximo do retângulo
+        if (
+          mouseX >= xmin - tolerance &&
+          mouseX <= xmax + tolerance &&
+          mouseY >= ymin - tolerance &&
+          mouseY <= ymax + tolerance
+        ) {
+          // Remove o retângulo da lista
+          objects.splice(i, 1);
+  
+          // Redesenha o canvas sem o retângulo removido
+          drawImage(images[currentImageIndex]);
+          drawSavedCoordinates();
+  
+          break; // Encerra o loop após encontrar e remover o retângulo
+        }
+      }
+    }
+  });
+    
+  
   canvas.addEventListener('mousedown', (event) => {
+    if (event.button !== 0) return;
+
     isDrawing = true;
     startX = event.clientX - canvas.getBoundingClientRect().left;
     startY = event.clientY - canvas.getBoundingClientRect().top;
   });
 
   canvas.addEventListener('mouseup', (event) => {
+    if (event.button !== 0) return;
+    
     isDrawing = false;
     endX = event.clientX - canvas.getBoundingClientRect().left;
     endY = event.clientY - canvas.getBoundingClientRect().top;
-
-    lastCoordinatesList = {
+  
+    // Obtém a classe selecionada
+    const classSelector = document.getElementById('class-selector');
+    const selectedClass = classSelector.value;
+  
+    // Calcula as coordenadas normalizadas
+    const coordinates = {
       xmin: startX / images[currentImageIndex].width,
       ymin: startY / images[currentImageIndex].height,
       xmax: (endX - startX) / images[currentImageIndex].width,
       ymax: (endY - startY) / images[currentImageIndex].height,
+      class: selectedClass, // Associa a classe selecionada
     };
-
-    coordinatesList[fileName] = lastCoordinatesList;
-  });
+  
+    // Adiciona ao array da imagem atual
+    if (!coordinatesList[fileName]) {
+      coordinatesList[fileName] = [];
+    }
+    coordinatesList[fileName].push(coordinates);
+  
+    // Atualiza o desenho
+    drawImage(images[currentImageIndex]);
+    drawSavedCoordinates();
+  });   
 
   document.getElementById('next-button').addEventListener('click', function () {
     if (currentImageIndex < images.length - 1) {
