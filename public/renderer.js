@@ -319,6 +319,45 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function addClassToHierarchy(className) {
+    if (className && !classHierarchy.has(className)) {
+      classHierarchy.add(className); // Adiciona a classe à hierarquia
+      updateClassSelector(); // Atualiza o seletor de classes
+      saveCustomNames(); // Salva as classes no arquivo custom.names
+    }
+  }
+
+  // Função chamada ao clicar no botão de adicionar classe
+  document.getElementById('add-class-button').addEventListener('click', () => {
+    const newClassName = document.getElementById('new-class-input').value.trim();
+    
+    if (newClassName) {
+      addClassToHierarchy(newClassName);
+      document.getElementById('new-class-input').value = ''; // Limpa o campo de entrada
+    } else {
+      showAlert('Por favor, insira um nome válido para a classe.');
+    }
+  });
+
+  // Atualiza o seletor de classes
+  function updateClassSelector() {
+    const classSelector = document.getElementById('class-selector');
+    
+    // Adiciona apenas a nova classe ao seletor, se não estiver presente
+    const classNames = Array.from(classHierarchy).sort(); // Ordena as classes
+    classNames.forEach(className => {
+      if (!Array.from(classSelector.options).some(option => option.value === className)) {
+        const option = document.createElement('option');
+        option.value = className;
+        option.textContent = className;
+        classSelector.appendChild(option);
+      }
+    });
+  }
+
+  // Outras funções do seu código permanecem as mesmas, como handleFileSelect, drawImage, etc.
+
+  // Mostra um alerta com uma mensagem
   function showAlert(message) {
     const alertBox = document.createElement('div');
     alertBox.textContent = message;
