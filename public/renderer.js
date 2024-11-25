@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const textFileName = document.getElementById('prev-filename');
   const coordinatesList = {};
+  const classHierarchy = new Set();
 
   let images = [];
   let currentImageIndex = 0;
@@ -14,6 +15,11 @@ document.addEventListener('DOMContentLoaded', () => {
   let lastCoordinatesList;
 
   input.addEventListener('change', handleFileSelect);
+
+  function getClassIndex(className) {
+    const classNames = Array.from(classHierarchy).sort(); // Ordena as classes
+    return classNames.indexOf(className); // Retorna o índice da classe
+  }
 
   function handleFileSelect(event) {
     const files = event.target.files;
@@ -56,17 +62,18 @@ document.addEventListener('DOMContentLoaded', () => {
           coords.ymax * images[currentImageIndex].height
         );
   
-        // Desenha o índice ou rótulo da classe
+        // Desenha o nome da classe
+        const className = Array.from(classHierarchy).sort()[coords.class]; // Obtemos o nome da classe pelo índice
         ctx.fillStyle = 'green';
         ctx.font = '16px Arial';
         ctx.fillText(
-          `Class ${coords.class}`,
+          className,  // Exibe o nome da classe ao invés do índice
           coords.xmin * images[currentImageIndex].width,
           coords.ymin * images[currentImageIndex].height - 5
         );
       });
     }
-  }  
+  }
 
   function handleMouseMove(event) {
     if (images.length !== 0) {
@@ -147,36 +154,65 @@ document.addEventListener('DOMContentLoaded', () => {
     startY = event.clientY - canvas.getBoundingClientRect().top;
   });
 
+  // Função chamada ao adicionar uma nova classe ao hierarquia
+  function addClassToHierarchy(className) {
+    if (className && !classHierarchy.has(className)) {
+      classHierarchy.add(className); // Adiciona a classe à hierarquia
+      updateClassSelector(); // Atualiza o seletor de classes
+      saveCustomNames(); // Salva as classes no arquivo custom.names
+    }
+  }
+
+  // Chamada para salvar as classes no arquivo custom.names
+  function saveCustomNames() {
+    if (classHierarchy.size > 0) {
+      const classNames = Array.from(classHierarchy).sort(); // Ordena as classes alfabeticamente
+      const namesData = classNames.join('\n'); // Junta as classes com quebras de linha
+
+      downloadFile('custom.names', namesData); // Faz o download do arquivo custom.names
+      showAlert('Arquivo custom.names salvo com sucesso!');
+    } else {
+      showAlert('Nenhuma classe registrada para salvar em custom.names.');
+    }
+  }
+
+  // A função `handleMouseMove` deve estar pronta para interagir com a classe
+  // Quando uma nova classe for selecionada no seletor, ela será registrada:
   canvas.addEventListener('mouseup', (event) => {
     if (event.button !== 0) return;
-    
+
     isDrawing = false;
     endX = event.clientX - canvas.getBoundingClientRect().left;
     endY = event.clientY - canvas.getBoundingClientRect().top;
-  
+
     // Obtém a classe selecionada
     const classSelector = document.getElementById('class-selector');
     const selectedClass = classSelector.value;
-  
+
+    // Adiciona a classe à hierarquia se ela ainda não existir
+    addClassToHierarchy(selectedClass);
+
+    const classIndex = getClassIndex(selectedClass); // Obtém o índice da classe selecionada
+
     // Calcula as coordenadas normalizadas
     const coordinates = {
       xmin: startX / images[currentImageIndex].width,
       ymin: startY / images[currentImageIndex].height,
       xmax: (endX - startX) / images[currentImageIndex].width,
       ymax: (endY - startY) / images[currentImageIndex].height,
-      class: selectedClass, // Associa a classe selecionada
+      class: classIndex, // Usa o índice da classe
     };
-  
+
     // Adiciona ao array da imagem atual
     if (!coordinatesList[fileName]) {
       coordinatesList[fileName] = [];
     }
     coordinatesList[fileName].push(coordinates);
-  
+
     // Atualiza o desenho
     drawImage(images[currentImageIndex]);
     drawSavedCoordinates();
-  });   
+  });
 
   document.getElementById('next-button').addEventListener('click', function () {
     if (currentImageIndex < images.length - 1) {
@@ -212,16 +248,24 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   function saveAllYOLOFormats() {
-    Object.keys(coordinatesList).forEach((fileName, index) => {
+    Object.keys(coordinatesList).forEach((fileName) => {
       const coords = coordinatesList[fileName];
       if (coords) {
-        const classIndex = index;
-        const yoloData = `${classIndex} ${(coords.xmin + coords.xmax / 2).toFixed(6)} ${(coords.ymin + coords.ymax / 2).toFixed(6)} ${coords.xmax.toFixed(6)} ${coords.ymax.toFixed(6)}\n`;
-        downloadFile(`${fileName.replace(/\.[^/.]+$/, '')}.txt`, yoloData);
+        const yoloData = coords.map(coord => {
+          const centerX = (coord.xmin + coord.xmax / 2).toFixed(6);
+          const centerY = (coord.ymin + coord.ymax / 2).toFixed(6);
+          const width = coord.xmax.toFixed(6);
+          const height = coord.ymax.toFixed(6);
+          return `${coord.class} ${centerX} ${centerY} ${width} ${height}`; // Usa o índice da classe
+        }).join('\n');
+  
+        const outputFileName = `${fileName.replace(/\.[^/.]+$/, '')}.txt`;
+        downloadFile(outputFileName, yoloData);
+        saveCustomNames()
       }
     });
     showAlert('Arquivos YOLO salvos com sucesso!');
-  }
+  }  
 
   function saveJSONFormat(fileName, coords) {
     if (coords) {
@@ -242,26 +286,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('prev-clipboard').addEventListener('click', function (event) {
     event.preventDefault();
-
-    const datasetFormat = document.getElementById('dataset-format').value;
-    let dataToCopy;
-
-    if (datasetFormat === 'json') {
-      dataToCopy = JSON.stringify(coordinatesList, null, 2);
-    } else if (datasetFormat === 'yolo') {
-      dataToCopy = Object.keys(coordinatesList).map((fileName, index) => {
-        const coords = coordinatesList[fileName];
-        const classIndex = index;
-        return `${classIndex} ${(coords.xmin + coords.xmax / 2).toFixed(6)} ${(coords.ymin + coords.ymax / 2).toFixed(6)} ${coords.xmax.toFixed(6)} ${coords.ymax.toFixed(6)}`;
-      }).join('\n');
+  
+    const yoloData = Object.keys(coordinatesList).map(fileName => {
+      const coords = coordinatesList[fileName];
+      if (coords) {
+        return coords.map(coord => {
+          const centerX = (coord.xmin + coord.xmax / 2).toFixed(6);
+          const centerY = (coord.ymin + coord.ymax / 2).toFixed(6);
+          const width = coord.xmax.toFixed(6);
+          const height = coord.ymax.toFixed(6);
+          return `${coord.class} ${centerX} ${centerY} ${width} ${height}`;
+        }).join('\n');
+      }
+      return '';
+    }).join('\n\n');
+  
+    if (yoloData.trim() !== '') {
+      navigator.clipboard.writeText(yoloData).then(function () {
+        showAlert('Dataset YOLO copiado para a área de transferência!');
+      }).catch(function (err) {
+        console.error('Falha ao copiar dataset: ', err);
+      });
+    } else {
+      showAlert('Nenhuma anotação disponível para copiar.');
     }
-
-    navigator.clipboard.writeText(dataToCopy).then(function () {
-      showAlert('Dataset copiado para a área de transferência!');
-    }).catch(function (err) {
-      console.error('Falha ao copiar dataset: ', err);
-    });
-  });
+  });  
 
   function loadCoordinatesForImage(fileName) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
