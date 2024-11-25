@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (classHierarchy.size > 0) {
       const classNames = Array.from(classHierarchy).sort(); // Ordena as classes alfabeticamente
       const namesData = classNames.join('\n'); // Junta as classes com quebras de linha
-
+  
       downloadFile('custom.names', namesData); // Faz o download do arquivo custom.names
       showAlert('Arquivo custom.names salvo com sucesso!');
     } else {
@@ -257,12 +257,12 @@ document.addEventListener('DOMContentLoaded', () => {
           const height = coord.ymax.toFixed(6);
           return `${coord.class} ${centerX} ${centerY} ${width} ${height}`; // Usa o índice da classe
         }).join('\n');
-  
+    
         const outputFileName = `${fileName.replace(/\.[^/.]+$/, '')}.txt`;
         downloadFile(outputFileName, yoloData);
-        saveCustomNames()
       }
     });
+    saveCustomNames(); // Chama para salvar as classes após salvar os dados YOLO
     showAlert('Arquivos YOLO salvos com sucesso!');
   }  
 
@@ -279,7 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
     link.href = URL.createObjectURL(blob);
     link.download = filename;
     link.click();
-  }
+  }  
 
   document.addEventListener('mousemove', handleMouseMove);
 
@@ -323,9 +323,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (className && !classHierarchy.has(className)) {
       classHierarchy.add(className); // Adiciona a classe à hierarquia
       updateClassSelector(); // Atualiza o seletor de classes
-      saveCustomNames(); // Salva as classes no arquivo custom.names
     }
-  }
+  }  
 
   // Função chamada ao clicar no botão de adicionar classe
   document.getElementById('add-class-button').addEventListener('click', () => {
@@ -353,7 +352,7 @@ document.addEventListener('DOMContentLoaded', () => {
         classSelector.appendChild(option);
       }
     });
-  }
+  }  
 
   // Outras funções do seu código permanecem as mesmas, como handleFileSelect, drawImage, etc.
 
